@@ -29,7 +29,7 @@ model Crane
   Body crane_arm_weight(m=m_crane, I=inertia);  // Object to represent crane arm weight
 
   // Create a wire to hold the load (will be modeled as a rigid bar), has no weight
-  FixedTranslation load_wire(r={l_load_wire, 0}, width=0.02); // Very small width to simulate thin wire
+  FixedTranslation load_wire(r={0, -l_load_wire}, width=0.02); // Very small width to simulate thin wire
   Revolute crane_wire_join; // Object to enable rotation of wire attached to the end of the crane arm
   
   // Create load on the crane
