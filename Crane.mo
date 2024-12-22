@@ -3,7 +3,10 @@ model Crane
   import PlanarMechanics.PlanarWorld;
   import PlanarMechanics.Parts.*;
   import PlanarMechanics.Joints.*;
+  import PlanarMechanics.Sensors.*;
   import Modelica.Units.SI.*;
+  import Modelica.Math.*;
+  import Modelica.Constants.*;
   
   parameter Inertia inertia = 0.1; // Inertia of mass objects [kg*m^2]
   parameter Mass m_crane = 5;  // Crane arm weight [kg]
@@ -36,10 +39,15 @@ model Crane
   Body load(m=m_load, I=inertia, sphereDiameter=0.3);   // Crane load (mass point)
 
   // Create spring that holds the crane arm from the top
-  Spring spring_top(c_x=k_spring_top, c_y=k_spring_top);
+  Spring spring_top(c_x=k_spring_top, c_y=k_spring_top, c_phi=k_spring_top);
   
   // Create spring that holds the crane arm from the bottom
-  Spring spring_bottom(c_x=k_spring_bottom, c_y=k_spring_bottom);
+  Spring spring_bottom(c_x=k_spring_bottom, c_y=k_spring_bottom, c_phi=k_spring_top);
+  
+  Real crane_x;  // X coordinate of the end of the crane arm
+  Real crane_y;  // Y coordinate of the end of the crane arm
+  Angle crane_angle; // Angle of the crane (positive = above level, negative = below level)
+      
 equation
    
   // Create crane arm with the wire
@@ -62,9 +70,12 @@ equation
   connect(spring_bottom.frame_a, bottom_FP.frame);   // Attach spring to fixed point
   connect(crane_arm1.frame_b, spring_bottom.frame_b);  // Attach spring to crane arm
   
-  annotation(experiment(StartTime = 0, StopTime = 10, Tolerance = 1e-06, Interval = 0.01));
+  // Determine crane location
+  crane_x = crane_arm3.frame_b.x;
+  crane_y = crane_arm3.frame_b.y;
+  crane_angle = asin(crane_y/l_crane_arm);
+
+  annotation(experiment(StartTime = 0, StopTime = 16, Tolerance = 1e-06, Interval = 0.01));
 
 end Crane;
-
-
 
