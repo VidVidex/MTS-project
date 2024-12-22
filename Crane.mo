@@ -4,6 +4,7 @@ model Crane
   import PlanarMechanics.Parts.*;
   import PlanarMechanics.Joints.*;
   import PlanarMechanics.Sensors.*;
+  import PlanarMechanics.Sources.*;
   import Modelica.Units.SI.*;
   import Modelica.Math.*;
   import Modelica.Constants.*;
@@ -15,14 +16,13 @@ model Crane
   parameter Length l_load_wire = 3;  // Lenth of wire holding the load [m]
   parameter TranslationalSpringConstant k_spring_top = 78; // Spring constant of top spring [N/m]
   parameter TranslationalSpringConstant k_spring_bottom = 5; // Spring constant of bottom spring [N/m]
-
+  parameter Length fixed_point_offset = 2; // How far appart (in m) are the fixed points
   
   inner PlanarWorld planarWorld(defaultWidthFraction=10);  // World inside which we're executing the simulation
   
-  Fixed top_FP(r={0, 2});  // Top fixed point (top spring and control wire)
-  Fixed middle_FP(phi=0);  // Middle fixed point (crane arm)
-  Fixed bottom_FP(r={0, -2}); // Bottom fixed point (bototm spring and control wire)
-
+  Fixed top_FP(r={0, fixed_point_offset});  // Top fixed point (top spring and control wire)
+  Fixed middle_FP;  // Middle fixed point (crane arm)
+  Fixed bottom_FP(r={0, -fixed_point_offset}); // Bottom fixed point (bototm spring and control wire)
 
   // Create crane arm (we model it as 3 parts, so that we have 2 intermediate points along the arm where we can connect the springs and control wires)
   Revolute crane_arm_join; // Object to enable rotation of crane arm around the fixed point
@@ -44,10 +44,18 @@ model Crane
   // Create spring that holds the crane arm from the bottom
   Spring spring_bottom(c_x=k_spring_bottom, c_y=k_spring_bottom, c_phi=k_spring_top);
   
+  // Create force from top control wire
+  Angle top_force_angle; // Angle at which the top force is acting on the crane arm [rad]
+  WorldForce wire_top(force={-sin(top_force_angle), cos(top_force_angle), 0});
+  
+  // Create force from bottom control wire
+  Angle bottom_force_angle; // Angle at which the bottom force is acting on the crane arm [rad]
+  WorldForce wire_bottom(force={-sin(bottom_force_angle), -cos(bottom_force_angle), 0});
+
   Real crane_x;  // X coordinate of the end of the crane arm
   Real crane_y;  // Y coordinate of the end of the crane arm
-  Angle crane_angle; // Angle of the crane (positive = above level, negative = below level)
-      
+  Angle crane_angle; // Angle of the crane (positive = above level, negative = below level) [rad]
+  
 equation
    
   // Create crane arm with the wire
@@ -74,6 +82,14 @@ equation
   crane_x = crane_arm3.frame_b.x;
   crane_y = crane_arm3.frame_b.y;
   crane_angle = asin(crane_y/l_crane_arm);
+  
+  // Determine the angle at which the force from the top wire is acting on the arm and then create it
+  top_force_angle = asin(fixed_point_offset * sin(pi/2-crane_angle) / sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2-crane_angle)));
+  connect(crane_arm2.frame_b, wire_top.frame_b);
+
+  // Determine the angle at which the force from the bottom wire is acting on the arm and then create it
+  bottom_force_angle = asin(fixed_point_offset * sin(pi/2+crane_angle) / sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2+crane_angle)));
+  connect(crane_arm2.frame_b, wire_bottom.frame_b);
 
   annotation(experiment(StartTime = 0, StopTime = 16, Tolerance = 1e-06, Interval = 0.01));
 
