@@ -84,11 +84,11 @@ equation
   crane_angle = asin(crane_y/l_crane_arm);
   
   // Determine the angle at which the force from the top wire is acting on the arm and then create it
-  top_force_angle = asin(fixed_point_offset * sin(pi/2-crane_angle) / sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2-crane_angle)));
+  top_force_angle = asin(fixed_point_offset * sin(pi/2+crane_angle) / sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2+crane_angle)));
   connect(crane_arm2.frame_b, wire_top.frame_b);
 
   // Determine the angle at which the force from the bottom wire is acting on the arm and then create it
-  bottom_force_angle = asin(fixed_point_offset * sin(pi/2+crane_angle) / sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2+crane_angle)));
+  bottom_force_angle = asin(fixed_point_offset * sin(pi/2-crane_angle) / sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2-crane_angle)));
   connect(crane_arm2.frame_b, wire_bottom.frame_b);
 
   annotation(experiment(StartTime = 0, StopTime = 16, Tolerance = 1e-06, Interval = 0.01));
