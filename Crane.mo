@@ -17,12 +17,17 @@ model Crane
   parameter TranslationalSpringConstant k_spring_top = 78; // Spring constant of top spring [N/m]
   parameter TranslationalSpringConstant k_spring_bottom = 5; // Spring constant of bottom spring [N/m]
   parameter Length fixed_point_offset = 2; // How far appart (in m) are the fixed points
-  
+  parameter Angle initial_desired_angle = 0; // The desired angle of the crane, 0 = horizontal [rad]
+  parameter Real Kp = 20; // Proportional gain
+  parameter Real Ki = 2;  // Integral gain
+  parameter Real Kd = 5;   // Derivative gain
+
+
   inner PlanarWorld planarWorld(defaultWidthFraction=10);  // World inside which we're executing the simulation
   
   Fixed top_FP(r={0, fixed_point_offset});  // Top fixed point (top spring and control wire)
   Fixed middle_FP;  // Middle fixed point (crane arm)
-  Fixed bottom_FP(r={0, -fixed_point_offset}); // Bottom fixed point (bototm spring and control wire)
+  Fixed bottom_FP(r={0, -fixed_point_offset}); // Bottom fixed point (bottom spring and control wire)
 
   // Create crane arm (we model it as 3 parts, so that we have 2 intermediate points along the arm where we can connect the springs and control wires)
   Revolute crane_arm_join; // Object to enable rotation of crane arm around the fixed point
@@ -46,16 +51,24 @@ model Crane
   
   // Create force from top control wire
   Angle top_force_angle; // Angle at which the top force is acting on the crane arm [rad]
-  WorldForce wire_top(force={-sin(top_force_angle), cos(top_force_angle), 0});
+  WorldForce wire_top(force={-sin(top_force_angle)*top_wire_force, cos(top_force_angle)*top_wire_force, 0});
   
   // Create force from bottom control wire
   Angle bottom_force_angle; // Angle at which the bottom force is acting on the crane arm [rad]
-  WorldForce wire_bottom(force={-sin(bottom_force_angle), -cos(bottom_force_angle), 0});
+  WorldForce wire_bottom(force={-sin(bottom_force_angle)*bottom_wire_force, -cos(bottom_force_angle)*bottom_wire_force, 0});
 
   Real crane_x;  // X coordinate of the end of the crane arm
   Real crane_y;  // Y coordinate of the end of the crane arm
   Angle crane_angle; // Angle of the crane (positive = above level, negative = below level) [rad]
+  Force top_wire_force; // Force applied to the top wire
+  Force bottom_wire_force; // Force applied to the bottom wire
   
+  // Variables for PID controller
+  Angle angle_error;
+  Real integral_error(start=0);
+  Real derivative_error;
+  Force control_force;
+  Real desired_angle(start=initial_desired_angle);
 equation
    
   // Create crane arm with the wire
@@ -90,8 +103,27 @@ equation
   // Determine the angle at which the force from the bottom wire is acting on the arm and then create it
   bottom_force_angle = asin(fixed_point_offset * sin(pi/2-crane_angle) / sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2-crane_angle)));
   connect(crane_arm2.frame_b, wire_bottom.frame_b);
+  
+  // Apply forces so that the crane angle is as close as possible to the desired angle using a PID control
+  angle_error = desired_angle - crane_angle;
+  der(integral_error) = angle_error;
+  derivative_error = der(angle_error);
+  control_force = Kp * angle_error + Ki * integral_error + Kd * derivative_error;
+  top_wire_force = control_force / 2;   // Distribute force to the top wire
+  bottom_wire_force = -control_force / 2; // Distribute force to the bottom wire
+  
+  // Control desired angle over time
+  if time < 20 then
+    desired_angle = 0; 
+  elseif time < 40 then
+    desired_angle = 10 * pi / 180;
+  elseif time < 60 then
+    desired_angle = 0;
+  else
+    desired_angle = -10 * pi / 180; 
+  end if;
 
-  annotation(experiment(StartTime = 0, StopTime = 16, Tolerance = 1e-06, Interval = 0.01));
+  annotation(experiment(StartTime = 0, StopTime = 100, Tolerance = 1e-06, Interval = 0.01));
 
 end Crane;
 
