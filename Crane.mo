@@ -18,9 +18,9 @@ model Crane
   parameter TranslationalSpringConstant k_spring_bottom = 5; // Spring constant of bottom spring [N/m]
   parameter Length fixed_point_offset = 2; // How far appart (in m) are the fixed points
   parameter Angle initial_desired_angle = 0; // The desired angle of the crane, 0 = horizontal [rad]
-  parameter Real Kp = 20; // Proportional gain
-  parameter Real Ki = 2;  // Integral gain
-  parameter Real Kd = 5;   // Derivative gain
+  parameter Real Kp = 100; // Proportional gain
+  parameter Real Ki = 10;  // Integral gain
+  parameter Real Kd = 100;   // Derivative gain
 
 
   inner PlanarWorld planarWorld(defaultWidthFraction=10);  // World inside which we're executing the simulation
