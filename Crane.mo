@@ -65,7 +65,7 @@ package CraneFaultModel
     // Load weight [kg]
     parameter Length l_load_wire = 3;
     // Lenth of wire holding the load [m]
-    parameter TranslationalSpringConstant k_spring_top = 190;
+    parameter TranslationalSpringConstant k_spring_top = 200;
     // Spring constant of top spring [N/m]
     parameter TranslationalSpringConstant k_spring_bottom = 100;
     // Spring constant of bottom spring [N/m]
@@ -73,11 +73,11 @@ package CraneFaultModel
     // How far appart (in m) are the fixed points
     parameter Angle initial_desired_angle = 0;
     // The desired angle of the crane, 0 = horizontal [rad]
-    parameter Real Kp = 300;
+    parameter Real Kp = 100;
     // Proportional gain
-    parameter Real Ki = 15;
+    parameter Real Ki = 50;
     // Integral gain
-    parameter Real Kd = 150;
+    parameter Real Kd = 100;
     // Derivative gain
     inner PlanarWorld planarWorld(defaultWidthFraction = 10) annotation(
       Placement(transformation(origin = {-76, 80}, extent = {{-10, -10}, {10, 10}})));
