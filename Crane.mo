@@ -87,11 +87,11 @@ package CraneFaultModel
     // How far appart (in m) are the fixed points
     parameter Angle initial_desired_angle = 0;
     // The desired angle of the crane, 0 = horizontal [rad]
-    parameter Real Kp = 20;
+    parameter Real Kp = 100;
     // Proportional gain
-    parameter Real Ki = 2;
+    parameter Real Ki = 10;
     // Integral gain
-    parameter Real Kd = 5;
+    parameter Real Kd = 100;
     // Derivative gain
     inner PlanarWorld planarWorld(defaultWidthFraction = 10) annotation(
       Placement(transformation(origin = {-76, 80}, extent = {{-10, -10}, {10, 10}})));
@@ -200,7 +200,7 @@ package CraneFaultModel
 // Determine the angle at which the force from the bottom wire is acting on the arm and then create it
     bottom_force_angle = asin(fixed_point_offset*sin(pi/2 - crane_angle)/sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2 - crane_angle)));
     connect(crane_arm2.frame_b, wire_bottom.frame_b);
-// Apply forces so that the crane angle is as close as possible to the desired angle using a PID control
+// Apply forces so that the crane angle is as close as possible to the desired angle using a PID controller
     angle_error = desired_angle - crane_angle;
     der(integral_error) = angle_error;
     derivative_error = der(angle_error);
