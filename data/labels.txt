@@ -1,3 +1,4 @@
 01: top spring breaks, no crane movement
 02: top spring breaks, with crane movement
 03: same as 02, but the load weight is 4kg instead of 5kg
+04: bottom spring breaks, with crane movement

@@ -2,11 +2,32 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-case = '02'
+case = '03'
+
+
+def find_by_low_anomaly_score(faulty_data):
+
+    # Create threshold for anomaly detection as the minimum anomaly score with a 100% margin. Do not use the first 10 seconds (time < 10) of data since the model is stabilizing
+    minimum_anomaly_score = faulty_data[faulty_data['time'] > 10]['anomaly_score'].min()
+    minimum_anomaly_score += abs(minimum_anomaly_score)
+    print(f'Minimum anomaly score: {minimum_anomaly_score}')
+
+    # Detect fault by finding enough consecutive anomalies
+    fault_count = 250
+    faulty_data['is_anomaly'] = faulty_data['anomaly_score'] < minimum_anomaly_score
+    faulty_data['is_anomaly'] = faulty_data['is_anomaly'].rolling(window=fault_count).sum() == fault_count
+
+    # Check if we found a fault
+    if faulty_data['is_anomaly'].sum() == 0:
+        return False, None
+    else:
+        first_anomaly_index = faulty_data[faulty_data['is_anomaly']].index[0] - fault_count
+        return True, first_anomaly_index
+
 
 # Load data
-normal_data = pd.read_csv(f'data/{case}_normal.csv')
-faulty_data = pd.read_csv(f'data/{case}_faulty.csv')
+normal_data = pd.read_csv(f'../data/{case}_normal.csv')
+faulty_data = pd.read_csv(f'../data/{case}_faulty.csv')
 
 # Extract features
 features = ["sut.control_force", "sut.m_load", "sut.desired_angle", "sut.crane_angle"]
@@ -28,24 +49,19 @@ anomaly_scores = iso_forest.decision_function(X_test_scaled)
 # Add results to the faulty dataset
 faulty_data['anomaly_score'] = anomaly_scores
 
-# Create threshold for anomaly detection as the minimum anomaly score with a 100% margin. Do not use the first 10 seconds (time < 10) of data since the model is stabilizing
-minimum_anomaly_score = faulty_data[faulty_data['time'] > 10]['anomaly_score'].min()
-minimum_anomaly_score += abs(minimum_anomaly_score)
-print(f'Minimum anomaly score: {minimum_anomaly_score}')
 
-# Detect fault by finding enough consecutive anomalies
-fault_count = 250
-faulty_data['is_anomaly'] = faulty_data['anomaly_score'] < minimum_anomaly_score
-faulty_data['is_anomaly'] = faulty_data['is_anomaly'].rolling(window=fault_count).sum() == fault_count
-
-# Find the first anomaly index, we have to go 'fault_count' steps back to find the actual start of the fault
-first_anomaly_index = faulty_data[faulty_data['is_anomaly']].index[0] - fault_count
+# First try to detect fault by finding a low anomaly score
+success, first_anomaly_index = find_by_low_anomaly_score(faulty_data)
+if not success:
+    print('No fault detected')
+    exit()
+        
 first_fault = faulty_data.loc[first_anomaly_index]
+
+print(f'Fault occurred at time: {first_fault["time"]}')
 
 # Set all rows after the first fault to be anomaly
 faulty_data.loc[first_anomaly_index:, 'is_anomaly'] = True
-
-print(f'Fault occurred at time: {first_fault["time"]}')
 
 import matplotlib.pyplot as plt
 

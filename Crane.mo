@@ -423,11 +423,38 @@ package CraneFaultModel
     
     annotation(
       experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
-<<<<<<< Updated upstream
   end Testbench2_top_spring_breaks;
   
-=======
-  end Testbench2_bottom_spring_breaks;
+  model Testbench3_bottom_spring_breaks
+    Crane sut;
+  equation
+  
+    // Control desired angle over time
+    if time < 20 then
+      sut.desired_angle = 0;
+    elseif time < 40 then
+      sut.desired_angle = -30*Modelica.Constants.pi/180;
+    elseif time < 60 then
+      sut.desired_angle = 0;
+    else
+      sut.desired_angle = +30*Modelica.Constants.pi/180;
+    end if;
+      
+    sut.crane_arm_join.state = FaultType.ok;
+    sut.crane_wire_join.state = FaultType.ok;
+    sut.wire_top.state = FaultType.ok;
+    sut.wire_bottom.state = FaultType.ok;
+    sut.spring_top.state = FaultType.ok;
+    
+    if time < 30 then
+      sut.spring_bottom.state = FaultType.ok;
+    else
+      sut.spring_bottom.state = FaultType.broken;
+    end if;
+    
+    annotation(
+      experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
+  end Testbench3_bottom_spring_breaks;
 
   model Testbench4_top_wire_breaks
       Crane sut;
@@ -457,7 +484,7 @@ package CraneFaultModel
       annotation(
         experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
     end Testbench4_top_wire_breaks;
->>>>>>> Stashed changes
+  
   annotation(
     uses(PlanarMechanics(version = "1.6.0")));
 
