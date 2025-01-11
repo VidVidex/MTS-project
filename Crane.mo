@@ -57,27 +57,27 @@ package CraneFaultModel
     
     parameter Inertia inertia = 0.1;
     // Inertia of mass objects [kg*m^2]
-    parameter Mass m_crane = 5;
+    parameter Mass m_crane = 25;
     // Crane arm weight [kg]
     parameter Length l_crane_arm = 3;
     // Crane arm length [m]. This is the lenght of each part so the total length is 3x this
-    parameter Mass m_load = 0.01;
+    parameter Mass m_load = 5;
     // Load weight [kg]
     parameter Length l_load_wire = 3;
     // Lenth of wire holding the load [m]
-    parameter TranslationalSpringConstant k_spring_top = 78;
+    parameter TranslationalSpringConstant k_spring_top = 190;
     // Spring constant of top spring [N/m]
-    parameter TranslationalSpringConstant k_spring_bottom = 5;
+    parameter TranslationalSpringConstant k_spring_bottom = 100;
     // Spring constant of bottom spring [N/m]
     parameter Length fixed_point_offset = 2;
     // How far appart (in m) are the fixed points
     parameter Angle initial_desired_angle = 0;
     // The desired angle of the crane, 0 = horizontal [rad]
-    parameter Real Kp = 100;
+    parameter Real Kp = 300;
     // Proportional gain
-    parameter Real Ki = 10;
+    parameter Real Ki = 15;
     // Integral gain
-    parameter Real Kd = 100;
+    parameter Real Kd = 150;
     // Derivative gain
     inner PlanarWorld planarWorld(defaultWidthFraction = 10) annotation(
       Placement(transformation(origin = {-76, 80}, extent = {{-10, -10}, {10, 10}})));
@@ -111,9 +111,9 @@ package CraneFaultModel
     Body load(m = m_load, I = inertia, sphereDiameter = 0.3);
     // Crane load (mass point)
     // Create spring that holds the crane arm from the top
-    CraneSpring spring_top(c_x = k_spring_top, c_y = k_spring_top);
+    CraneSpring spring_top(c_x = k_spring_top, c_y = k_spring_top, s_relx0=l_crane_arm/3, s_rely0=fixed_point_offset);
     // Create spring that holds the crane arm from the bottom
-    CraneSpring spring_bottom(c_x = k_spring_bottom, c_y = k_spring_bottom);
+    CraneSpring spring_bottom(c_x = k_spring_bottom, c_y = k_spring_bottom, s_relx0=l_crane_arm/3, s_rely0=fixed_point_offset);
     // Create force from top control wire
     Angle top_force_angle;
     // Angle at which the top force is acting on the crane arm [rad]
@@ -142,32 +142,32 @@ package CraneFaultModel
     Force control_force;
     Real desired_angle(start = initial_desired_angle);
   equation
-// Create crane arm with the wire
+  // Create crane arm with the wire
     connect(middle_FP.frame, crane_arm_join.frame_a) annotation(
       Line(points = {{-64, 0}, {-54, 0}}, color = {95, 95, 95}));
-// Attach join to fixed point
+  // Attach join to fixed point
     connect(crane_arm_join.frame_b, crane_arm1.frame_a);
-// Attach first part of the arm to join
+  // Attach first part of the arm to join
     connect(crane_arm1.frame_b, crane_arm2.frame_a);
-// Attach second part of the arm to the first
+  // Attach second part of the arm to the first
     connect(crane_arm2.frame_b, crane_arm3.frame_a);
-// Attach third part the arm to the second
+  // Attach third part the arm to the second
     connect(crane_arm3.frame_b, crane_arm_weight.frame_a);
-// Attach weight to the end of the arm (end of 3rd part)
+  // Attach weight to the end of the arm (end of 3rd part)
     connect(crane_arm3.frame_b, crane_wire_join.frame_a);
-// Attach join for the wire to the end of the arm (end of 3rd part)
+  // Attach join for the wire to the end of the arm (end of 3rd part)
     connect(crane_wire_join.frame_b, load_wire.frame_a);
-// Attach wire to the join at the end of the arm
-// Attach load to the wire
+  // Attach wire to the join at the end of the arm
+  // Attach load to the wire
     connect(load.frame_a, load_wire.frame_b);
-// Create top spring
+  // Create top spring
     connect(spring_top.frame_a, top_FP.frame);
-// Attach spring to fixed point
+  // Attach spring to fixed point
     connect(crane_arm1.frame_b, spring_top.frame_b);
-// Attach spring to crane arm
-// Create bottom spring
+  // Attach spring to crane arm
+  // Create bottom spring
     connect(spring_bottom.frame_a, bottom_FP.frame);
-// Attach spring to fixed point
+  // Attach spring to fixed point
     connect(crane_arm1.frame_b, spring_bottom.frame_b);
     
   connect(top_FP.frame, wire_top.frame_a) annotation(
@@ -175,28 +175,28 @@ package CraneFaultModel
   connect(bottom_FP.frame, wire_bottom.frame_a) annotation(
       Line(points = {{-50, -52}, {-8, -52}, {-8, -20}}, color = {95, 95, 95}));
     
-// Attach spring to crane arm
-// Determine crane location
+  // Attach spring to crane arm
+  // Determine crane location
     crane_x = crane_arm3.frame_b.x;
     crane_y = crane_arm3.frame_b.y;
     crane_angle = asin(crane_y/l_crane_arm);
-// Determine the angle at which the force from the top wire is acting on the arm and then create it
+  // Determine the angle at which the force from the top wire is acting on the arm and then create it
     top_force_angle = asin(fixed_point_offset*sin(pi/2 + crane_angle)/sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2 + crane_angle)));
     connect(crane_arm2.frame_b, wire_top.frame_b);
-// Determine the angle at which the force from the bottom wire is acting on the arm and then create it
+  // Determine the angle at which the force from the bottom wire is acting on the arm and then create it
     bottom_force_angle = asin(fixed_point_offset*sin(pi/2 - crane_angle)/sqrt(fixed_point_offset*fixed_point_offset + (l_crane_arm*2/3)*(l_crane_arm*2/3) - 2*(l_crane_arm*2/3)*fixed_point_offset*cos(pi/2 - crane_angle)));
     connect(crane_arm2.frame_b, wire_bottom.frame_b);
-// Apply forces so that the crane angle is as close as possible to the desired angle using a PID controller
+  // Apply forces so that the crane angle is as close as possible to the desired angle using a PID controller
     angle_error = desired_angle - crane_angle;
     der(integral_error) = angle_error;
     derivative_error = der(angle_error);
     control_force = Kp*angle_error + Ki*integral_error + Kd*derivative_error;
     top_wire_force = control_force/2;
     wire_top.wanted_force = {-sin(top_force_angle)*top_wire_force, cos(top_force_angle)*top_wire_force, 0};
-// Distribute force to the top wire
+  // Distribute force to the top wire
     bottom_wire_force = -control_force/2;
     wire_bottom.wanted_force = {-sin(bottom_force_angle)*bottom_wire_force, -cos(bottom_force_angle)*bottom_wire_force, 0};
-// Distribute force to the bottom wire
+  // Distribute force to the bottom wire
   end Crane;
   
   model CraneSpring "Linear 2D translational spring"
@@ -369,18 +369,18 @@ package CraneFaultModel
   end CraneSpring;
 
 
-  model Testbench1
+  model Testbench1_ok
     Crane sut;
   equation
   // Control desired angle over time
     if time < 20 then
       sut.desired_angle = 0;
     elseif time < 40 then
-      sut.desired_angle = 10*Modelica.Constants.pi/180;
+      sut.desired_angle = -30*Modelica.Constants.pi/180;
     elseif time < 60 then
       sut.desired_angle = 0;
     else
-      sut.desired_angle = -10*Modelica.Constants.pi/180;
+      sut.desired_angle = +30*Modelica.Constants.pi/180;
     end if;
     
     sut.crane_arm_join.state = FaultType.ok;
@@ -392,7 +392,38 @@ package CraneFaultModel
     
     annotation(
       experiment(StartTime = 0, StopTime = 100, Tolerance = 1e-06, Interval = 0.01));
-  end Testbench1;
+  end Testbench1_ok;
+  
+  model Testbench2_bottom_spring_breaks
+    Crane sut;
+  equation
+  
+    // Control desired angle over time
+    if time < 20 then
+      sut.desired_angle = 0;
+    elseif time < 40 then
+      sut.desired_angle = -30*Modelica.Constants.pi/180;
+    elseif time < 60 then
+      sut.desired_angle = 0;
+    else
+      sut.desired_angle = +30*Modelica.Constants.pi/180;
+    end if;
+    
+    sut.crane_arm_join.state = FaultType.ok;
+    sut.crane_wire_join.state = FaultType.ok;
+    sut.wire_top.state = FaultType.ok;
+    sut.wire_bottom.state = FaultType.ok;
+    sut.spring_top.state = FaultType.ok;
+    
+    if time < 30 then
+      sut.spring_bottom.state = FaultType.ok;
+    else
+      sut.spring_bottom.state = FaultType.broken;
+    end if;
+    
+    annotation(
+      experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
+  end Testbench2_bottom_spring_breaks;
   
   annotation(
     uses(PlanarMechanics(version = "1.6.0")));
