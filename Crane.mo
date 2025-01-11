@@ -191,10 +191,15 @@ package CraneFaultModel
     der(integral_error) = angle_error;
     derivative_error = der(angle_error);
     control_force = Kp*angle_error + Ki*integral_error + Kd*derivative_error;
-    top_wire_force = control_force/2;
+    if control_force > 0 then
+      top_wire_force = control_force;
+      bottom_wire_force = 0;
+    else
+      top_wire_force = 0;
+      bottom_wire_force = -control_force;
+    end if;
     wire_top.wanted_force = {-sin(top_force_angle)*top_wire_force, cos(top_force_angle)*top_wire_force, 0};
   // Distribute force to the top wire
-    bottom_wire_force = -control_force/2;
     wire_bottom.wanted_force = {-sin(bottom_force_angle)*bottom_wire_force, -cos(bottom_force_angle)*bottom_wire_force, 0};
   // Distribute force to the bottom wire
   end Crane;
@@ -408,18 +413,18 @@ package CraneFaultModel
     else
       sut.desired_angle = +30*Modelica.Constants.pi/180;
     end if;
-      
+    
     sut.crane_arm_join.state = FaultType.ok;
     sut.crane_wire_join.state = FaultType.ok;
     sut.wire_top.state = FaultType.ok;
     sut.wire_bottom.state = FaultType.ok;
-    sut.spring_bottom.state = FaultType.ok;
+    sut.spring_top.state = FaultType.ok;
     
-    //if time < 30 then
-      sut.spring_top.state = FaultType.ok;
-    //else
-    //  sut.spring_top.state = FaultType.broken;
-    //end if;
+    if time < 30 then
+      sut.spring_bottom.state = FaultType.ok;
+    else
+      sut.spring_bottom.state = FaultType.broken;
+    end if;
     
     annotation(
       experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
@@ -457,33 +462,33 @@ package CraneFaultModel
   end Testbench3_bottom_spring_breaks;
 
   model Testbench4_top_wire_breaks
-      Crane sut;
-    equation
-    
-      // Control desired angle over time
-      if time < 20 then
-        sut.desired_angle = 0;
-      elseif time < 40 then
-        sut.desired_angle = -30*Modelica.Constants.pi/180;
-      else
-        sut.desired_angle = +30*Modelica.Constants.pi/180;
-      end if;
+    Crane sut;
+  equation
+  
+    // Control desired angle over time
+    if time < 20 then
+      sut.desired_angle = 0;
+    elseif time < 40 then
+      sut.desired_angle = -30*Modelica.Constants.pi/180;
+    else
+      sut.desired_angle = +30*Modelica.Constants.pi/180;
+    end if;
       
-      sut.crane_arm_join.state = FaultType.ok;
-      sut.crane_wire_join.state = FaultType.ok;
-      sut.wire_bottom.state = FaultType.ok;
-      sut.spring_top.state = FaultType.ok;
-      sut.spring_bottom.state = FaultType.ok;
+    sut.crane_arm_join.state = FaultType.ok;
+    sut.crane_wire_join.state = FaultType.ok;
+    sut.wire_bottom.state = FaultType.ok;
+    sut.spring_top.state = FaultType.ok;
+    sut.spring_bottom.state = FaultType.ok;
       
-      if time < 30 then
-        sut.wire_top.state = FaultType.ok;
-      else
-        sut.wire_top.state = FaultType.broken;
-      end if;
+    if time < 30 then
+      sut.wire_top.state = FaultType.ok;
+    else
+      sut.wire_top.state = FaultType.broken;
+    end if;
       
-      annotation(
-        experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
-    end Testbench4_top_wire_breaks;
+    annotation(
+      experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
+  end Testbench4_top_wire_breaks;
   
   annotation(
     uses(PlanarMechanics(version = "1.6.0")));
