@@ -73,11 +73,11 @@ package CraneFaultModel
     // How far appart (in m) are the fixed points
     parameter Angle initial_desired_angle = 0;
     // The desired angle of the crane, 0 = horizontal [rad]
-    parameter Real Kp = 100;
+    parameter Real Kp = 500;
     // Proportional gain
-    parameter Real Ki = 50;
+    parameter Real Ki = 500;
     // Integral gain
-    parameter Real Kd = 100;
+    parameter Real Kd = 500;
     // Derivative gain
     inner PlanarWorld planarWorld(defaultWidthFraction = 10) annotation(
       Placement(transformation(origin = {-76, 80}, extent = {{-10, -10}, {10, 10}})));
@@ -374,7 +374,8 @@ package CraneFaultModel
   model Testbench1_ok
     Crane sut;
   equation
-// Control desired angle over time
+  
+    // Control desired angle over time
     if time < 20 then
       sut.desired_angle = 0;
     elseif time < 40 then
@@ -393,7 +394,7 @@ package CraneFaultModel
     sut.spring_bottom.state = FaultType.ok;
     
     annotation(
-      experiment(StartTime = 0, StopTime = 100, Tolerance = 1e-06, Interval = 0.01));
+      experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
   end Testbench1_ok;
   
   model Testbench2_top_spring_breaks
@@ -414,12 +415,12 @@ package CraneFaultModel
     sut.crane_wire_join.state = FaultType.ok;
     sut.wire_top.state = FaultType.ok;
     sut.wire_bottom.state = FaultType.ok;
-    sut.spring_top.state = FaultType.ok;
+    sut.spring_bottom.state = FaultType.ok;
     
     if time < 30 then
-      sut.spring_bottom.state = FaultType.ok;
+      sut.spring_top.state = FaultType.ok;
     else
-      sut.spring_bottom.state = FaultType.broken;
+      sut.spring_top.state = FaultType.broken;
     end if;
     
     annotation(
