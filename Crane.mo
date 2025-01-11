@@ -394,7 +394,7 @@ package CraneFaultModel
       experiment(StartTime = 0, StopTime = 100, Tolerance = 1e-06, Interval = 0.01));
   end Testbench1_ok;
   
-  model Testbench2_bottom_spring_breaks
+  model Testbench2_top_spring_breaks
     Crane sut;
   equation
   
@@ -408,22 +408,22 @@ package CraneFaultModel
     else
       sut.desired_angle = +30*Modelica.Constants.pi/180;
     end if;
-    
+      
     sut.crane_arm_join.state = FaultType.ok;
     sut.crane_wire_join.state = FaultType.ok;
     sut.wire_top.state = FaultType.ok;
     sut.wire_bottom.state = FaultType.ok;
-    sut.spring_top.state = FaultType.ok;
+    sut.spring_bottom.state = FaultType.ok;
     
-    if time < 30 then
-      sut.spring_bottom.state = FaultType.ok;
-    else
-      sut.spring_bottom.state = FaultType.broken;
-    end if;
+    //if time < 30 then
+      sut.spring_top.state = FaultType.ok;
+    //else
+    //  sut.spring_top.state = FaultType.broken;
+    //end if;
     
     annotation(
       experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
-  end Testbench2_bottom_spring_breaks;
+  end Testbench2_top_spring_breaks;
   
   annotation(
     uses(PlanarMechanics(version = "1.6.0")));
