@@ -1,78 +1,137 @@
-import pandas as pd
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
-
-case = '03'
-
-
-def find_by_low_anomaly_score(faulty_data):
-
-    # Create threshold for anomaly detection as the minimum anomaly score with a 100% margin. Do not use the first 10 seconds (time < 10) of data since the model is stabilizing
-    minimum_anomaly_score = faulty_data[faulty_data['time'] > 10]['anomaly_score'].min()
-    minimum_anomaly_score += abs(minimum_anomaly_score)
-    print(f'Minimum anomaly score: {minimum_anomaly_score}')
-
-    # Detect fault by finding enough consecutive anomalies
-    fault_count = 250
-    faulty_data['is_anomaly'] = faulty_data['anomaly_score'] < minimum_anomaly_score
-    faulty_data['is_anomaly'] = faulty_data['is_anomaly'].rolling(window=fault_count).sum() == fault_count
-
-    # Check if we found a fault
-    if faulty_data['is_anomaly'].sum() == 0:
-        return False, None
-    else:
-        first_anomaly_index = faulty_data[faulty_data['is_anomaly']].index[0] - fault_count
-        return True, first_anomaly_index
-
-
-# Load data
-normal_data = pd.read_csv(f'../data/{case}_normal.csv')
-faulty_data = pd.read_csv(f'../data/{case}_faulty.csv')
-
-# Extract features
-features = ["sut.control_force", "sut.m_load", "sut.desired_angle", "sut.crane_angle"]
-X_train = normal_data[features]
-X_test = faulty_data[features]
-
-# Scale data
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
-
-# Train Isolation Forest
-iso_forest = IsolationForest(contamination=0.001, random_state=42)
-iso_forest.fit(X_train_scaled)
-
-# Predict on faulty data
-anomaly_scores = iso_forest.decision_function(X_test_scaled)
-
-# Add results to the faulty dataset
-faulty_data['anomaly_score'] = anomaly_scores
-
-
-# First try to detect fault by finding a low anomaly score
-success, first_anomaly_index = find_by_low_anomaly_score(faulty_data)
-if not success:
-    print('No fault detected')
-    exit()
-        
-first_fault = faulty_data.loc[first_anomaly_index]
-
-print(f'Fault occurred at time: {first_fault["time"]}')
-
-# Set all rows after the first fault to be anomaly
-faulty_data.loc[first_anomaly_index:, 'is_anomaly'] = True
-
 import matplotlib.pyplot as plt
+import pandas as pd
+import math
+import glob
+import numpy as np
+
+# Load the data
+normal_file = '../data/01_ok.csv'
+fault_file = glob.glob('../data/02_*.csv')[0]
+
+normal_frame = pd.read_csv(normal_file)
+fault_frame = pd.read_csv(fault_file)
+
+# Detect spring breaking
+# top spring: rapid increase in control force and decrease in angle when no angle change is requested
+# bottom spring: slight increase in control force and decrease in angle when no angle change is requested
+def detect_spring_break(normal_frame, fault_frame, threshold_multiplier=25):
+
+    # Calculate force change when angle change is not requested
+    normal_frame['control_force_change'] = np.where(normal_frame['angle_change'],  0, normal_frame['sut.control_force'].diff())
+    fault_frame['control_force_change'] = np.where(fault_frame['angle_change'],  0, fault_frame['sut.control_force'].diff())
+
+    # Set the threshold for maximum force change to be threshold_multiplier times the maximum force change in normal frame
+    max_force_change_threshold = normal_frame['control_force_change'].max() * threshold_multiplier
+
+    # Mark all rows where force change is greater than the threshold as fault
+    fault_frame['fault'] = fault_frame['control_force_change'] > max_force_change_threshold 
+
+    # Find faults
+    faults = fault_frame[fault_frame['fault'] == True]
+
+    # Check if we have any faults
+    if faults.empty:
+        return False, None
+    
+    # Return first fault
+    return True, faults.iloc[0]
+
+# Detect wire breaking
+# top wire: desired angle in upward direction not achieved
+def detect_top_wire_break(normal_frame, fault_frame):
+    normal_frame['desired_current_angle_diff'] = normal_frame['sut.desired_angle'] - normal_frame['sut.crane_angle']
+    fault_frame['desired_current_angle_diff'] = fault_frame['sut.desired_angle'] - fault_frame['sut.crane_angle']
+
+    # Find the time when the desired angle is not achieved (with some threshold)
+    normal_frame['desired_angle_not_achieved'] = normal_frame['desired_current_angle_diff'] > 10
+    fault_frame['desired_angle_not_achieved'] = fault_frame['desired_current_angle_diff'] > 10
+
+    # Find the longest sequence of desired angle not achieved
+    normal_frame['desired_angle_not_achieved_count'] = normal_frame['desired_angle_not_achieved'].cumsum()
+    fault_frame['desired_angle_not_achieved_count'] = fault_frame['desired_angle_not_achieved'].cumsum()
+
+    # Set a threshold for the number of rows where the desired angle is achieved based on the normal frame
+    threshold = normal_frame['desired_angle_not_achieved_count'].max() * 5
+
+    # Find the time when the desired angle is not achieved for more than the threshold
+    faults = fault_frame[fault_frame['desired_angle_not_achieved_count'] > threshold]
+
+    # Check if we have any faults
+    if faults.empty:
+        return False, None
+
+    return True, faults.iloc[0]
+
+    
+# Detect bottom wire breaking
+# bottom wire: desired angle in downward direction not achieved
+def detect_bottom_wire_break(normal_frame, fault_frame):
+    normal_frame['desired_current_angle_diff'] = normal_frame['sut.desired_angle'] - normal_frame['sut.crane_angle']
+    fault_frame['desired_current_angle_diff'] = fault_frame['sut.desired_angle'] - fault_frame['sut.crane_angle']
+
+    # Find the time when the desired angle is not achieved (with some threshold)
+    normal_frame['desired_angle_not_achieved'] = normal_frame['desired_current_angle_diff'] < -10
+    fault_frame['desired_angle_not_achieved'] = fault_frame['desired_current_angle_diff'] < -10
+
+    # Find the longest sequence of desired angle not achieved
+    normal_frame['desired_angle_not_achieved_count'] = normal_frame['desired_angle_not_achieved'].cumsum()
+    fault_frame['desired_angle_not_achieved_count'] = fault_frame['desired_angle_not_achieved'].cumsum()
+
+    # Set a threshold for the number of rows where the desired angle is achieved based on the normal frame
+    threshold = normal_frame['desired_angle_not_achieved_count'].max() * 5
+
+    # Find the time when the desired angle is not achieved for more than the threshold
+    faults = fault_frame[fault_frame['desired_angle_not_achieved_count'] > threshold]
+
+    # Check if we have any faults
+    if faults.empty:
+        return False, None
+
+    return True, faults.iloc[0]
+
+# Convert angles to degrees
+fault_frame['sut.desired_angle'] = fault_frame['sut.desired_angle'] * 180 / math.pi
+fault_frame['sut.crane_angle'] = fault_frame['sut.crane_angle'] * 180 / math.pi
+normal_frame['sut.desired_angle'] = normal_frame['sut.desired_angle'] * 180 / math.pi
+normal_frame['sut.crane_angle'] = normal_frame['sut.crane_angle'] * 180 / math.pi
+
+# Mark the row where the angle changes and the few rows before and after that (time to stabilize the angle)
+before_rows = 100
+after_rows = 600
+normal_frame['angle_change'] = normal_frame['sut.desired_angle'].diff()
+indices = normal_frame[normal_frame['angle_change'] != 0].index
+for index in indices:
+    normal_frame.loc[max(index-before_rows, 0):index+after_rows, 'angle_change'] = 1
+
+fault_frame['angle_change'] = fault_frame['sut.desired_angle'].diff()
+indices = fault_frame[fault_frame['angle_change'] != 0].index
+for index in indices:
+    fault_frame.loc[max(index-before_rows, 0):index+after_rows, 'angle_change'] = 1
+
+# Detect top spring breaking
+found, fault = detect_spring_break(normal_frame, fault_frame, 25)
+if found:
+    print(f'Top spring break fault detected at time: {fault["time"]}')
+    exit()
+
+# Detect bottom spring breaking
+found, fault = detect_spring_break(normal_frame, fault_frame, 5)
+if found:
+    print(f'Bottom spring break fault detected at time: {fault["time"]}')
+    exit()
+
+# Detect top wire breaking
+found, fault = detect_top_wire_break(normal_frame, fault_frame)
+if found:
+    print(f'Top wire break fault detected sometime before time: {fault["time"]}')
+    exit()
+
+# Detect bottom wire breaking
+found, fault = detect_bottom_wire_break(normal_frame, fault_frame)
+if found:
+    print(f'Bottom wire break fault detected sometime before time: {fault["time"]}')
+    exit()
 
 
-plt.figure(figsize=(10, 6))
-plt.plot(faulty_data['time'], faulty_data['anomaly_score'], label='Anomaly Score')
-plt.scatter(faulty_data['time'][faulty_data['is_anomaly']], 
-            faulty_data['anomaly_score'][faulty_data['is_anomaly']], 
-            color='red', label='Anomaly')
-plt.xlabel('Time')
-plt.ylabel('Anomaly Score')
-plt.legend()
-plt.title(f'Anomaly Detection Results for case {case}')
-plt.show()
+print('No fault detected')
+
