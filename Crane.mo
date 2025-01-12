@@ -490,9 +490,11 @@ package CraneFaultModel
   equation
   // Control desired angle over time
     if time < 20 then
-      sut.desired_angle = -30*Modelica.Constants.pi/180;
+      sut.desired_angle = 30*Modelica.Constants.pi/180;
+    elseif time < 40 then
+      sut.desired_angle = 0;
     else
-      sut.desired_angle = -50*Modelica.Constants.pi/180;
+      sut.desired_angle = -30*Modelica.Constants.pi/180;
     end if;
       
     sut.crane_arm_join.state = FaultType.ok;
@@ -508,8 +510,38 @@ package CraneFaultModel
     end if;
       
     annotation(
-      experiment(StartTime = 0, StopTime = 50, Tolerance = 1e-06, Interval = 0.01));
+      experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.01));
   end Testbench5_bottom_wire_breaks;
+  
+  model Testbench
+    Crane sut;
+   
+    input FaultType crane_arm_join_state;
+    input FaultType crane_wire_join_state;
+    input FaultType wire_top_state;
+    input FaultType wire_bottom_state;
+    input FaultType spring_top_state;
+    input FaultType spring_bottom_state;
+  equation
+  
+    if time < 20 then
+      sut.desired_angle = 30*Modelica.Constants.pi/180;
+    elseif time < 40 then
+      sut.desired_angle = 0;
+    else
+      sut.desired_angle = -30*Modelica.Constants.pi/180;
+    end if;
+  
+    sut.crane_arm_join.state = crane_arm_join_state;
+    sut.crane_wire_join.state = crane_wire_join_state;
+    sut.wire_top.state = wire_top_state;
+    sut.wire_bottom.state = wire_bottom_state;
+    sut.spring_top.state = spring_top_state;
+    sut.spring_bottom.state = spring_bottom_state;
+    
+    annotation(
+      experiment(StartTime = 0, StopTime = 80, Tolerance = 1e-06, Interval = 0.1));
+  end Testbench;
   annotation(
     uses(PlanarMechanics(version = "1.6.0")));
 
