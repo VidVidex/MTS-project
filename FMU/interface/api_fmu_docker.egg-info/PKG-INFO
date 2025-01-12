@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: api_fmu_docker
+Version: 1.0.1
+Summary: FMU Docker Simulation API
+Author: David Kaufmann
+Author-email: <david.kaufmann@ist.tugraz.at>
+Keywords: python,api,fmu,docker,simulation
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Education
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: Microsoft :: Windows
+
+This library is used as an API to send requests to a Docker FMU simulation environment

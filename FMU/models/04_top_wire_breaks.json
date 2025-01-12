@@ -1,0 +1,34 @@
+{
+    "server": "http://localhost:81/",
+    "fmu": "models/Testbench.fmu",
+    "config": {
+        "output": [
+            "sut.crane_angle",
+            "sut.control_force",
+            "sut.desired_angle",
+            "sut.crane_wire_join.measured_weight"
+        ],
+        "timestep": 0.1,
+        "init_input": {
+            "crane_arm_join_state": "ok",
+            "crane_wire_join_state": "ok",
+            "wire_top_state": "ok",
+            "wire_bottom_state": "ok",
+            "spring_top_state": "ok",
+            "spring_bottom_state": "ok"
+        },
+        "charts_active": true,
+        "chart_time_window": 800
+    },
+    "input": [
+        {
+            "time": 30.0,
+            "crane_arm_join_state": "ok",
+            "crane_wire_join_state": "ok",
+            "wire_top_state": "broken",
+            "wire_bottom_state": "ok",
+            "spring_top_state": "ok",
+            "spring_bottom_state": "ok"
+        }
+    ]
+}
