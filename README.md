@@ -19,19 +19,19 @@ Usage:
 2. Start FMU environment (available on `http://localhost:81`)
 
     ```bash
-    `./setup_scripts/start_docker.sh mts:81`
+    ./setup_scripts/start_docker.sh mts:81
     ```
 
 3. Create conda environment
 
     ```bash
-    `conda env create -f environment.yml`
+    conda env create -f environment.yml
     ```
 
 4. Activate conda environment
 
     ```bash
-    `conda activate fmu_sim`
+    conda activate fmu_sim
     ```
 
 5. Run the models
