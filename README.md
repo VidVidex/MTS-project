@@ -37,7 +37,7 @@ Usage:
 5. Run the models
 
     ```bash
-    `python run_model.py`
+    python run_model.py
     ```
 
 ## Machine learning model
